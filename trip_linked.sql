@@ -1,0 +1,1 @@
+SELECT * FROM `confidential-2023-utah-hts.20250728.trips_adjusted`
