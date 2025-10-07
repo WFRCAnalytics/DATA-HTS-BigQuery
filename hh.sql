@@ -160,13 +160,6 @@ SELECT
   -- Additional calculated columns
   LEAST(a.num_people, 6) AS hhsize_6cat,
   LEAST(a.num_workers, 3) AS workers_4cat,
-
-  -- Non-College (1-TripGen) only
-  CASE WHEN segment_type = 'College'
-      THEN NULL
-      ELSE a.num_people * a.hh_weight_v2
-  END AS pop_2023_1TG,
-
   (
     CASE
       WHEN a.residence_months_0 = 995 THEN 995
@@ -195,20 +188,6 @@ SELECT
   cnt.hh_children,
   cnt.hh_adults,
   cnt.hh_seniors,
-  
-  -- Non-College (1-TripGen) only
-  CASE WHEN segment_type = 'College'
-      THEN NULL
-      ELSE cnt.hh_children * a.hh_weight_v2
-  END AS pop_2023_children_1TG,
-  CASE WHEN segment_type = 'College'
-      THEN NULL
-      ELSE cnt.hh_adults * a.hh_weight_v2
-  END AS pop_2023_adults_1TG,
-  CASE WHEN segment_type = 'College'
-      THEN NULL
-      ELSE cnt.hh_seniors * a.hh_weight_v2
-  END AS pop_2023_seniors_1TG,
 
   -- Non-College (1-TripGen) only
   CASE 

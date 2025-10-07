@@ -37,62 +37,17 @@ SELECT
        person_weight_aggregated_v2
   ),
 
-  -- Replace 'Supplemental' with 'CBS' in segment_type
-  CASE 
-    WHEN p.segment_type = 'Supplemental' THEN 'CBS'
-    ELSE p.segment_type
-  END AS segment_type_cleaned,
-
- -- Lifegroup categorization
-  CASE
-    WHEN segment_type != 'College' AND age <= 3 THEN 'child'
-    WHEN segment_type != 'College' AND age <= 8 THEN 'adult'
-    WHEN segment_type != 'College' AND age <= 11 THEN 'senior'
-    ELSE NULL
-  END AS lifegroup_1TG,
-
- -- Group age into bins
-  CASE
-    WHEN segment_type != 'College' AND age BETWEEN 0 AND 3 THEN 1
-    WHEN segment_type != 'College' AND age BETWEEN 4 AND 8 THEN 2
-    WHEN segment_type != 'College' AND age >= 9 THEN 3
-    ELSE NULL
-  END AS age_3cat_1TG,
-
-
- -- _1TG Fields ARE ONLY FOR TDM use (1-TripGen)
- -- Calculate jobs by age type
-  CASE
-    WHEN segment_type != 'College' AND age BETWEEN 4 AND 8 THEN num_jobs
-    ELSE 0
-  END AS adultJobs_1TG,
-  
-  CASE
-    WHEN segment_type != 'College' AND age >= 9 THEN num_jobs
-    ELSE 0
-  END AS seniorJobs_1TG,
-  
-  CASE
-    WHEN segment_type != 'College' AND age <= 3 THEN num_jobs
-    ELSE 0
-  END AS childJobs_1TG,
-
- -- Calculate number of person trips
+  -- Calculate number of person trips
   CASE
     WHEN segment_type = 'College' AND num_trips > 0 THEN 1
     ELSE 0
   END AS person_made_trips_college,
 
- -- Calculate number of person trips
-  CASE
-    WHEN segment_type != 'College' AND num_trips > 0 THEN 1
-    ELSE 0
-  END AS person_made_trips_1TG,
-
   -- Calculate drive to work trip and distance
   COALESCE(t.drive_work_trips, 0) AS drive_work_trips,
   COALESCE(t.drive_work_distance, 0) AS drive_work_distance,
 
+  -- _1TG Fields ARE ONLY FOR TDM use (1-TripGen)
   -- Non-College (1-TripGen) only
   CASE 
     WHEN segment_type = 'College' THEN person_weight_v2 
