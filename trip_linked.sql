@@ -45,11 +45,11 @@ destination_taz_v4 AS (
 
 SELECT
   t.* EXCEPT(trip_weight_new),
-  t.trip_weight_new AS trip_weight_1TG,
   ot3.oCO_TAZID_USTMv3,
   dt3.dCO_TAZID_USTMv3,
   ot4.oCO_TAZID_USTMv4,
-  dt4.dCO_TAZID_USTMv4
+  dt4.dCO_TAZID_USTMv4,
+  t.trip_weight_new AS trip_weight_1TG,
 FROM `confidential-2023-utah-hts.20250728.trips_adjusted` AS t
 LEFT JOIN origin_taz_v3      AS ot3 USING (linked_trip_id)
 LEFT JOIN destination_taz_v3 AS dt3 USING (linked_trip_id)
