@@ -44,7 +44,9 @@ destination_taz_v4 AS (
 )
 
 SELECT
-  t.* EXCEPT(trip_weight_new),
+  t.* EXCEPT(trip_weight_new,
+  o_lon, o_lat, d_lon, d_lat
+  ),
   ot3.oCO_TAZID_USTMv3,
   dt3.dCO_TAZID_USTMv3,
   ot4.oCO_TAZID_USTMv4,
