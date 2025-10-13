@@ -51,7 +51,7 @@ trips_with_taz AS (
     dt3.dCO_TAZID_USTMv3,
     ot4.oCO_TAZID_USTMv4,
     dt4.dCO_TAZID_USTMv4,
-    t.trip_weight_new AS trip_weight_1TG
+    t.trip_weight_new AS trip_weight
   FROM `confidential-2023-utah-hts.20250728.trips_adjusted` AS t
   LEFT JOIN origin_taz_v3      AS ot3 USING (linked_trip_id)
   LEFT JOIN destination_taz_v3 AS dt3 USING (linked_trip_id)
@@ -116,6 +116,30 @@ trips_with_purposes AS (
   FROM trips_with_taz
 ),
 
+trips_with_mode AS (
+  SELECT
+    *,
+    -- linked_trip_mode_t
+    CASE linked_trip_mode
+      WHEN -1 THEN 'Missing Response'
+      WHEN 1  THEN 'School Bus'
+      WHEN 2  THEN 'Drive-Transit'
+      WHEN 5  THEN 'Walk-Transit'
+      WHEN 8  THEN 'Shared-Ride 3+'
+      WHEN 9  THEN 'Shared-Ride 2'
+      WHEN 10 THEN 'Drive-Alone'
+      WHEN 11 THEN 'Bike'
+      WHEN 12 THEN 'Scooter'
+      WHEN 13 THEN 'Taxi'
+      WHEN 14 THEN 'TNC'
+      WHEN 15 THEN 'Walk'
+      WHEN 16 THEN 'Long Distance'
+      WHEN 17 THEN 'Other'
+      ELSE NULL
+    END AS linked_trip_mode_t,
+  FROM trips_with_purposes
+),
+
 trips_with_pa_ap AS (
   SELECT
     *,
@@ -128,7 +152,7 @@ trips_with_pa_ap AS (
       WHEN o_purpose_category3 = 'Undefined' OR d_purpose_category3 = 'Undefined' THEN 'Undefined'
       ELSE 'PA'
     END AS PA_AP
-  FROM trips_with_purposes
+  FROM trips_with_mode
 ),
 
 trips_with_times AS (
@@ -161,8 +185,13 @@ trips_with_times AS (
 trips_with_school AS (
   SELECT
     *,
-    -- PURP7_t calculation (renaming)
-    Model_Purpose AS PURP7_t,
+    -- PURP7_t calculation (rename + special case for HBO)
+    CASE
+      WHEN Model_Purpose = 'HBO' THEN 'HBOth'
+      ELSE Model_Purpose
+    END AS PURP7_t,
+
+    -- rename depart_seconds
     depart_seconds AS depart_second,
    
     --- school level
@@ -173,6 +202,41 @@ trips_with_school AS (
       ELSE 'NULL'
     END AS HBSch_lev
   FROM trips_with_times
+),
+
+-- join unlinked trips columns for non-linked trips
+trips_with_unlinked AS (
+  SELECT
+    t.*,
+    u.trip_id,
+    u.speed_mph,
+    u.speed_mph_collected,
+    u.speed_flag,
+    u.distance_meters,
+    u.distance_meters_collected,
+    u.distance_miles,
+    u.distance_miles_collected,
+    u.park_location,
+    u.park_type,
+    u.park_pay,
+    u.park_cost,
+    u.ev_charge_station,
+    u.ev_charge_station_level_1,
+    u.ev_charge_station_level_2,
+    u.ev_charge_station_level_998,
+    u.ev_charge_station_decision,
+    u.tnc_type,
+    u.taxi_type,
+    u.taxi_pay,
+    u.transit_type,
+    u.num_travelers,
+    u.num_hh_travelers,
+    u.num_non_hh_travelers,
+    u.driver
+  FROM trips_with_school AS t
+  LEFT JOIN `confidential-2023-utah-hts.20250728.core_trip` AS u
+    ON CAST(t.linked_trip_id / 1000 AS INT64) = u.trip_id
+    AND t.joint_status = 1
 ),
 
 -- production/attraction zones
@@ -205,11 +269,12 @@ trips_with_pa_zones AS (
       ELSE NULL
     END AS aCO_TAZID_USTMv4
 
-  FROM trips_with_school
+  FROM trips_with_unlinked
 )
 
+
 SELECT
-  linked_trip_id, hh_id, person_id, day_id, day_weight,
+  linked_trip_id, trip_id, hh_id, person_id, day_id, day_weight,
   person_num, day_num,
   participation_group, diary_platform,
   o_purpose, o_purpose_category, o_purpose_type, o_purpose_category3, o_purpose_type_rsg,
@@ -221,7 +286,15 @@ SELECT
   joint_status, joint_trip_id, joint_trip_num, joint_num_participants,
   escort_category, outbound,
   primdest_penalty, trip_adjustment_factor,
-  linked_trip_mode, 
+  speed_mph, speed_mph_collected, speed_flag,
+  distance_meters, distance_meters_collected, distance_miles, distance_miles_collected,
+  park_location, park_type, park_pay, park_cost,
+  ev_charge_station, ev_charge_station_level_1, ev_charge_station_level_2, ev_charge_station_level_998, ev_charge_station_decision,
+  tnc_type, taxi_type, taxi_pay,
+  transit_type,
+  num_travelers, num_hh_travelers, num_non_hh_travelers, 
+  driver,
+  linked_trip_mode, linked_trip_mode_t,
   linked_trip_weight, linked_trip_num, 
   tour_num, tour_id, 
   trip_purp_RSG, TMR_Purpose, PURP7_t, 
@@ -230,7 +303,7 @@ SELECT
   PA_AP,
   oCO_TAZID_USTMv3, dCO_TAZID_USTMv3, pCO_TAZID_USTMv3, aCO_TAZID_USTMv3,
   oCO_TAZID_USTMv4, dCO_TAZID_USTMv4, pCO_TAZID_USTMv4, aCO_TAZID_USTMv4,
-  trip_weight_1TG
+  trip_weight
 FROM trips_with_pa_zones;
 
 

@@ -199,11 +199,17 @@ SELECT
     ELSE CAST(t.mode_type_broad AS FLOAT64)
   END AS mode_auto,
 
-  -- Non-College (1-TripGen) only
+  -- College trips
   CASE 
-    WHEN segment_type = 'College' THEN NULL 
-    ELSE t.trip_weight_v2
-  END AS trip_weight_1TG,
+      WHEN segment_type = 'College' THEN t.trip_weight_v2
+      ELSE NULL
+  END AS trip_weight_col_enrol,
+  
+  -- Non-College trips
+  CASE 
+      WHEN segment_type != 'College' OR segment_type IS NULL THEN t.trip_weight_v2
+      ELSE NULL
+  END AS trip_weight,
 
   -- Compute activ_dur using LAG function
   LAG(t.arrive_hour * 60 + t.arrive_minute) OVER (

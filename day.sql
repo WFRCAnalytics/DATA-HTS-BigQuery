@@ -14,10 +14,16 @@ SELECT
     ELSE d.segment_type
   END AS segment_type_cleaned,
 
-  -- Non-College (1-TripGen) only
+  -- College trips
   CASE 
-    WHEN segment_type = 'College' THEN NULL 
-    ELSE day_weight_v2
-  END AS day_weight_1TG,
+      WHEN segment_type = 'College' THEN d.day_weight_v2
+      ELSE NULL
+  END AS day_weight_col_enrol,
+  
+  -- Non-College trips
+  CASE 
+      WHEN segment_type != 'College' OR segment_type IS NULL THEN d.day_weight_v2
+      ELSE NULL
+  END AS day_weight
   
 FROM `confidential-2023-utah-hts.20250728.core_day` AS d

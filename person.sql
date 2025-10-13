@@ -47,18 +47,17 @@ SELECT
   COALESCE(t.drive_work_trips, 0) AS drive_work_trips,
   COALESCE(t.drive_work_distance, 0) AS drive_work_distance,
 
-  -- _1TG Fields ARE ONLY FOR TDM use (1-TripGen)
-  -- Non-College (1-TripGen) only
+  -- College trips
   CASE 
-    WHEN segment_type = 'College' THEN person_weight_v2 
-    ELSE NULL
-  END AS person_weight_college,
-
-  -- Non-College (1-TripGen) only
+      WHEN segment_type = 'College' THEN p.person_weight_v2
+      ELSE NULL
+  END AS person_weight_col_enrol,
+  
+  -- Non-College trips
   CASE 
-    WHEN segment_type = 'College' THEN NULL 
-    ELSE person_weight_v2 
-  END AS hh_person_weight_1TG,
+      WHEN segment_type != 'College' OR segment_type IS NULL THEN p.person_weight_v2
+      ELSE NULL
+  END AS person_weight
  
 FROM `confidential-2023-utah-hts.20250728.core_person` AS p
 

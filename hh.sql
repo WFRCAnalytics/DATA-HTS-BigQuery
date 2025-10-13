@@ -189,11 +189,17 @@ SELECT
   cnt.hh_adults,
   cnt.hh_seniors,
 
-  -- Non-College (1-TripGen) only
+  -- College trips
   CASE 
-    WHEN segment_type = 'College' THEN NULL 
-    ELSE a.hh_weight_v2 
-  END AS hh_weight_1TG,
+      WHEN segment_type = 'College' THEN a.hh_weight_v2
+      ELSE NULL
+  END AS hh_weight_col_enrol,
+  
+  -- Non-College trips
+  CASE 
+      WHEN segment_type != 'College' OR segment_type IS NULL THEN a.hh_weight_v2
+      ELSE NULL
+  END AS hh_weight,
 
   -- spatial join fields
   tazv3.CO_TAZID AS hCO_TAZID_USTMv3,
