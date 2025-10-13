@@ -8,7 +8,7 @@ WITH trips_filtered AS (
     person_id,
     trip_id,
     distance_miles
-  FROM `confidential-2023-utah-hts.20250728.core_trip`
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip`
   WHERE trip_type IN (1, 6)
 ),
 trips_count AS (
@@ -59,7 +59,7 @@ SELECT
       ELSE NULL
   END AS person_weight
  
-FROM `confidential-2023-utah-hts.20250728.core_person` AS p
+FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_person` AS p
 
 LEFT JOIN trips_count AS t
 ON p.person_id = t.person_id

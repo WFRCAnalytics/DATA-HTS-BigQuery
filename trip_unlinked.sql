@@ -7,8 +7,8 @@ WITH trip_base AS (
     SELECT 
         t.*,
         p.school_type
-    FROM `confidential-2023-utah-hts.20250728.core_trip` AS t
-    LEFT JOIN `confidential-2023-utah-hts.20250728.core_person` AS p
+    FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
+    LEFT JOIN `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_person` AS p
     ON t.person_id = p.person_id
 ),
 
@@ -17,9 +17,9 @@ origin_taz_v3 AS (
   SELECT
     t.trip_id,
     ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS oCO_TAZID_USTMv3
-  FROM `confidential-2023-utah-hts.20250728.core_trip` AS t
-  JOIN `confidential-2023-utah-hts.geometries.ustm_v3_taz_2021_09_22_geog` AS taz
-    ON ST_INTERSECTS(ST_GEOGPOINT(t.o_lon, t.o_lat), taz.geometry)
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
+  JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
+    ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
   GROUP BY t.trip_id
 ),
 
@@ -28,9 +28,9 @@ destination_taz_v3 AS (
   SELECT
     t.trip_id,
     ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS dCO_TAZID_USTMv3
-  FROM `confidential-2023-utah-hts.20250728.core_trip` AS t
-  JOIN `confidential-2023-utah-hts.geometries.ustm_v3_taz_2021_09_22_geog` AS taz
-    ON ST_INTERSECTS(ST_GEOGPOINT(t.d_lon, t.d_lat), taz.geometry)
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
+  JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
+    ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
   GROUP BY t.trip_id
 ),
 
@@ -38,9 +38,9 @@ origin_taz_v4 AS (
   SELECT
     t.trip_id,
     ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS oCO_TAZID_USTMv4
-  FROM `confidential-2023-utah-hts.20250728.core_trip` AS t
-  JOIN `confidential-2023-utah-hts.geometries.ustm_v4_taz_2025_07_29_geog` AS taz
-    ON ST_INTERSECTS(ST_GEOGPOINT(t.o_lon, t.o_lat), taz.geometry)
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
+  JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
+    ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
   GROUP BY t.trip_id
 ),
 
@@ -49,9 +49,9 @@ destination_taz_v4 AS (
   SELECT
     t.trip_id,
     ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS dCO_TAZID_USTMv4
-  FROM `confidential-2023-utah-hts.20250728.core_trip` AS t
-  JOIN `confidential-2023-utah-hts.geometries.ustm_v4_taz_2025_07_29_geog` AS taz
-    ON ST_INTERSECTS(ST_GEOGPOINT(t.d_lon, t.d_lat), taz.geometry)
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
+  JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
+    ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
   GROUP BY t.trip_id
 ),
 

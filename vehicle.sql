@@ -7,4 +7,4 @@ SELECT
     ELSE v.segment_type
   END AS segment_type_cleaned
   
-FROM `confidential-2023-utah-hts.20250728.core_vehicle` AS v
+FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_vehicle` AS v

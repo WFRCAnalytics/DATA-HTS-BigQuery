@@ -26,4 +26,4 @@ SELECT
       ELSE NULL
   END AS day_weight
   
-FROM `confidential-2023-utah-hts.20250728.core_day` AS d
+FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_day` AS d
