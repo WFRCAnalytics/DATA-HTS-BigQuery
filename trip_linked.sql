@@ -41,19 +41,208 @@ destination_taz_v4 AS (
   JOIN `confidential-2023-utah-hts.geometries.ustm_v4_taz_2025_07_29_geog` AS taz
     ON ST_INTERSECTS(ST_GEOGPOINT(t.d_lon, t.d_lat), taz.geometry)
   GROUP BY t.linked_trip_id
+),
+
+-- select columns and join geographies
+trips_with_taz AS (
+  SELECT
+    t.* EXCEPT(trip_weight_new, o_lon, o_lat, d_lon, d_lat),
+    ot3.oCO_TAZID_USTMv3,
+    dt3.dCO_TAZID_USTMv3,
+    ot4.oCO_TAZID_USTMv4,
+    dt4.dCO_TAZID_USTMv4,
+    t.trip_weight_new AS trip_weight_1TG
+  FROM `confidential-2023-utah-hts.20250728.trips_adjusted` AS t
+  LEFT JOIN origin_taz_v3      AS ot3 USING (linked_trip_id)
+  LEFT JOIN destination_taz_v3 AS dt3 USING (linked_trip_id)
+  LEFT JOIN origin_taz_v4      AS ot4 USING (linked_trip_id)
+  LEFT JOIN destination_taz_v4 AS dt4 USING (linked_trip_id)
+),
+
+trips_with_purposes AS (
+  SELECT
+    *,
+    -- o_purpose_category3
+    CASE
+      WHEN o_purpose_category = 1 THEN 'Home'
+      WHEN o_purpose_category IN (2,3) THEN 'Work'
+      WHEN o_purpose_category IN (995,-1) THEN 'Undefined'
+      ELSE 'Other'
+    END AS o_purpose_category3,
+
+    -- d_purpose_category3
+    CASE
+      WHEN d_purpose_category = 1 THEN 'Home'
+      WHEN d_purpose_category IN (2,3) THEN 'Work'
+      WHEN d_purpose_category IN (995,-1) THEN 'Undefined'
+      ELSE 'Other'
+    END AS d_purpose_category3,
+
+    -- o_purpose_type
+    CASE o_purpose_category
+      WHEN 1 THEN 'home'
+      WHEN 2 THEN 'work'
+      WHEN 3 THEN 'work-related'
+      WHEN 4 THEN 'school'
+      WHEN 5 THEN 'school-related'
+      WHEN 7 THEN 'shop'
+      WHEN 6 THEN 'escort'
+      WHEN 8 THEN 'meal'
+      WHEN 9 THEN 'social-rec'
+      WHEN 10 THEN 'errand'
+      WHEN 11 THEN 'change-mode'
+      WHEN 12 THEN 'overnight'
+      WHEN 13 THEN 'other'
+      ELSE NULL
+    END AS o_purpose_type,
+
+    -- d_purpose_type
+    CASE d_purpose_category
+      WHEN 1 THEN 'home'
+      WHEN 2 THEN 'work'
+      WHEN 3 THEN 'work-related'
+      WHEN 4 THEN 'school'
+      WHEN 5 THEN 'school-related'
+      WHEN 7 THEN 'shop'
+      WHEN 6 THEN 'escort'
+      WHEN 8 THEN 'meal'
+      WHEN 9 THEN 'social-rec'
+      WHEN 10 THEN 'errand'
+      WHEN 11 THEN 'change-mode'
+      WHEN 12 THEN 'overnight'
+      WHEN 13 THEN 'other'
+      ELSE NULL
+    END AS d_purpose_type
+  FROM trips_with_taz
+),
+
+trips_with_pa_ap AS (
+  SELECT
+    *,
+    -- PA_AP calculation
+    CASE
+      WHEN o_purpose_category3 = 'Home' THEN 'PA'
+      WHEN d_purpose_category3 = 'Home' THEN 'AP'
+      WHEN o_purpose_category3 = 'Work' AND d_purpose_category3 = 'Other' THEN 'PA'
+      WHEN o_purpose_category3 = 'Other' AND d_purpose_category3 = 'Work' THEN 'AP'
+      WHEN o_purpose_category3 = 'Undefined' OR d_purpose_category3 = 'Undefined' THEN 'Undefined'
+      ELSE 'PA'
+    END AS PA_AP
+  FROM trips_with_purposes
+),
+
+trips_with_times AS (
+  SELECT
+    *,
+    -- Depart period
+    CASE
+      WHEN depart_hour BETWEEN 6 AND 8 THEN 'AM'
+      WHEN depart_hour BETWEEN 9 AND 14 THEN 'MD'
+      WHEN depart_hour BETWEEN 15 AND 17 THEN 'PM'
+      ELSE 'EV'
+    END AS depart_per,
+
+    -- Arrive period
+    CASE
+      WHEN arrive_hour BETWEEN 6 AND 8 THEN 'AM'
+      WHEN arrive_hour BETWEEN 9 AND 14 THEN 'MD'
+      WHEN arrive_hour BETWEEN 15 AND 17 THEN 'PM'
+      ELSE 'EV'
+    END AS arrive_per,
+
+    -- Depart/arrive HHMM
+    SAFE_CAST(FORMAT('%02d%02d', depart_hour, depart_minute) AS INT64) AS depart_hhm,
+    depart_hour * 60 + depart_minute AS depart_mam,
+    SAFE_CAST(FORMAT('%02d%02d', arrive_hour, arrive_minute) AS INT64) AS arrive_hhm,
+    arrive_hour * 60 + arrive_minute AS arrive_mam
+  FROM trips_with_pa_ap
+),
+
+trips_with_school AS (
+  SELECT
+    *,
+    -- PURP7_t calculation (renaming)
+    Model_Purpose AS PURP7_t,
+    depart_seconds AS depart_second,
+   
+    --- school level
+    CASE
+      WHEN Model_Purpose = 'HBSch' AND school_type = 5 THEN 'primary'
+      WHEN Model_Purpose = 'HBSch' AND school_type IN (6, 7) THEN 'secondary'
+      WHEN Model_Purpose = 'HBSch' AND school_type NOT IN (5, 6, 7) THEN 'undefined'
+      ELSE 'NULL'
+    END AS HBSch_lev
+  FROM trips_with_times
+),
+
+-- production/attraction zones
+trips_with_pa_zones AS (
+  SELECT
+    *,
+    -- production / attraction for USTMv3
+    CASE
+      WHEN PA_AP = 'PA' THEN oCO_TAZID_USTMv3
+      WHEN PA_AP = 'AP' THEN dCO_TAZID_USTMv3
+      ELSE NULL
+    END AS pCO_TAZID_USTMv3,
+
+    CASE
+      WHEN PA_AP = 'PA' THEN dCO_TAZID_USTMv3
+      WHEN PA_AP = 'AP' THEN oCO_TAZID_USTMv3
+      ELSE NULL
+    END AS aCO_TAZID_USTMv3,
+
+    -- production / attraction for USTMv4
+    CASE
+      WHEN PA_AP = 'PA' THEN oCO_TAZID_USTMv4
+      WHEN PA_AP = 'AP' THEN dCO_TAZID_USTMv4
+      ELSE NULL
+    END AS pCO_TAZID_USTMv4,
+
+    CASE
+      WHEN PA_AP = 'PA' THEN dCO_TAZID_USTMv4
+      WHEN PA_AP = 'AP' THEN oCO_TAZID_USTMv4
+      ELSE NULL
+    END AS aCO_TAZID_USTMv4
+
+  FROM trips_with_school
 )
 
 SELECT
-  t.* EXCEPT(trip_weight_new,
-  o_lon, o_lat, d_lon, d_lat
-  ),
-  ot3.oCO_TAZID_USTMv3,
-  dt3.dCO_TAZID_USTMv3,
-  ot4.oCO_TAZID_USTMv4,
-  dt4.dCO_TAZID_USTMv4,
-  t.trip_weight_new AS trip_weight_1TG,
-FROM `confidential-2023-utah-hts.20250728.trips_adjusted` AS t
-LEFT JOIN origin_taz_v3      AS ot3 USING (linked_trip_id)
-LEFT JOIN destination_taz_v3 AS dt3 USING (linked_trip_id)
-LEFT JOIN origin_taz_v4      AS ot4 USING (linked_trip_id)
-LEFT JOIN destination_taz_v4 AS dt4 USING (linked_trip_id);
+  linked_trip_id, hh_id, person_id, day_id, day_weight,
+  person_num, day_num,
+  participation_group, diary_platform,
+  o_purpose, o_purpose_category, o_purpose_type, o_purpose_category3, o_purpose_type_rsg,
+  depart_time, depart_date, depart_hour, depart_minute, depart_second, depart_per, depart_hhm, depart_mam,
+  d_purpose, d_purpose_category, d_purpose_type, d_purpose_category3, d_purpose_type_rsg,
+  arrive_time, arrive_date, arrive_hour, arrive_minute, arrive_second, arrive_per, arrive_hhm, arrive_mam,
+  home_distance, duration_minutes, dwell_mins,
+  hh_member_1, hh_member_2, hh_member_3, hh_member_4, hh_member_5, hh_member_6, hh_member_7, hh_member_8, hh_member_9, hh_member_10, hh_member_11, hh_member_12, hh_member_13,
+  joint_status, joint_trip_id, joint_trip_num, joint_num_participants,
+  escort_category, outbound,
+  primdest_penalty, trip_adjustment_factor,
+  linked_trip_mode, 
+  linked_trip_weight, linked_trip_num, 
+  tour_num, tour_id, 
+  trip_purp_RSG, TMR_Purpose, PURP7_t, 
+  person_type, person_cat, 
+  school_type, HBSch_lev,
+  PA_AP,
+  oCO_TAZID_USTMv3, dCO_TAZID_USTMv3, pCO_TAZID_USTMv3, aCO_TAZID_USTMv3,
+  oCO_TAZID_USTMv4, dCO_TAZID_USTMv4, pCO_TAZID_USTMv4, aCO_TAZID_USTMv4,
+  trip_weight_1TG
+FROM trips_with_pa_zones;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
