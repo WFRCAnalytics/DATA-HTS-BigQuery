@@ -17,7 +17,7 @@ WITH person_lifegroup AS (
       WHEN age <= 11 THEN 'senior'
       ELSE NULL
     END AS lifegroup
-  FROM `confidential-2023-utah-hts.20250728.core_person`
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_person`
 ),
 
 -- calculate lifecycles
@@ -67,7 +67,7 @@ household_lifegroup_counts AS (
     SUM(CASE WHEN age <= 3 THEN 1 ELSE 0 END) AS hh_children,
     SUM(CASE WHEN age > 3 AND age <= 8 THEN 1 ELSE 0 END) AS hh_adults,
     SUM(CASE WHEN age > 8 AND age <= 11 THEN 1 ELSE 0 END) AS hh_seniors
-  FROM `confidential-2023-utah-hts.20250728.core_person`
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_person`
   WHERE age IS NOT NULL
   GROUP BY hh_id
 )
@@ -205,15 +205,15 @@ SELECT
   tazv3.CO_TAZID AS hCO_TAZID_USTMv3,
   tazv4.CO_TAZID AS hCO_TAZID_USTMv4
 
-FROM `confidential-2023-utah-hts.20250728.core_hh` AS a
+FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_hh` AS a
 
-LEFT JOIN `confidential-2023-utah-hts.20250728.followon_hh` AS b
+LEFT JOIN `wfrc-modeling-data.src_rsg_household_travel_survey_2023.followon_hh` AS b
   ON a.hh_id = b.hh_id
 LEFT JOIN household_lifecycle AS lc
   ON a.hh_id = lc.hh_id
 LEFT JOIN household_lifegroup_counts AS cnt
   ON a.hh_id = cnt.hh_id
-LEFT JOIN `confidential-2023-utah-hts.geometries.ustm_v3_taz_2021_09_22_geog` AS tazv3
-  ON ST_WITHIN(ST_GEOGPOINT(a.home_lon, a.home_lat), tazv3.geometry)
-LEFT JOIN `confidential-2023-utah-hts.geometries.ustm_v4_taz_2025_07_29_geog` AS tazv4
-  ON ST_WITHIN(ST_GEOGPOINT(a.home_lon, a.home_lat), tazv4.geometry)
+LEFT JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS tazv3
+  ON ST_WITHIN(st_geogpoint(a.home_lon, a.home_lat), tazv3.geometry)
+LEFT JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS tazv4
+  ON ST_WITHIN(st_geogpoint(a.home_lon, a.home_lat), tazv4.geometry)
