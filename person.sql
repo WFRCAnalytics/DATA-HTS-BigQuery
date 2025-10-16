@@ -36,12 +36,50 @@ SELECT
        person_weight_v2,
        person_weight_aggregated_v2
   ),
-
-  -- Calculate number of person trips
-  CASE
-    WHEN segment_type = 'College' AND num_trips > 0 THEN 1
-    ELSE 0
-  END AS person_made_trips_college,
+ 
+  -- Replace 'Supplemental' with 'CBS' in segment_type 
+  CASE  
+    WHEN p.segment_type = 'Supplemental' THEN 'CBS' 
+    ELSE p.segment_type 
+  END AS segment_type_cleaned, 
+ 
+ -- Lifegroup categorization 
+  CASE 
+    WHEN segment_type != 'College' AND age <= 3 THEN 'child' 
+    WHEN segment_type != 'College' AND age <= 8 THEN 'adult' 
+    WHEN segment_type != 'College' AND age <= 11 THEN 'senior' 
+    ELSE NULL 
+  END AS lifegroup, 
+ 
+ -- Group age into bins 
+  CASE 
+    WHEN segment_type != 'College' AND age BETWEEN 0 AND 3 THEN 1 
+    WHEN segment_type != 'College' AND age BETWEEN 4 AND 8 THEN 2 
+    WHEN segment_type != 'College' AND age >= 9 THEN 3 
+    ELSE NULL 
+  END AS age_3cat, 
+ 
+ -- Calculate jobs by age type 
+  CASE 
+    WHEN age BETWEEN 4 AND 8 THEN num_jobs 
+    ELSE 0 
+  END AS adultJobs, 
+   
+  CASE 
+    WHEN age >= 9 THEN num_jobs 
+    ELSE 0 
+  END AS seniorJobs, 
+   
+  CASE 
+    WHEN age <= 3 THEN num_jobs 
+    ELSE 0 
+  END AS childJobs, 
+ 
+ -- Calculate number of person trips 
+  CASE 
+    WHEN num_trips > 0 THEN 1 
+    ELSE 0 
+  END AS person_made_trips, 
 
   -- Calculate drive to work trip and distance
   COALESCE(t.drive_work_trips, 0) AS drive_work_trips,
