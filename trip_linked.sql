@@ -204,40 +204,43 @@ trips_with_school AS (
   FROM trips_with_times
 ),
 
--- join unlinked trips columns for non-linked trips
 trips_with_unlinked AS (
   SELECT
     t.*,
-    u.trip_id,
-    u.speed_mph,
-    u.speed_mph_collected,
-    u.speed_flag,
-    u.distance_meters,
-    u.distance_meters_collected,
-    u.distance_miles,
-    u.distance_miles_collected,
-    u.park_location,
-    u.park_type,
-    u.park_pay,
-    u.park_cost,
-    u.ev_charge_station,
-    u.ev_charge_station_level_1,
-    u.ev_charge_station_level_2,
-    u.ev_charge_station_level_998,
-    u.ev_charge_station_decision,
-    u.tnc_type,
-    u.taxi_type,
-    u.taxi_pay,
-    u.transit_type,
-    u.num_travelers,
-    u.num_hh_travelers,
-    u.num_non_hh_travelers,
-    u.driver
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.speed_mph END AS speed_mph,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.speed_mph_collected END AS speed_mph_collected,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.speed_flag END AS speed_flag,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.distance_meters END AS distance_meters,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.distance_meters_collected END AS distance_meters_collected,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.distance_miles END AS distance_miles,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.distance_miles_collected END AS distance_miles_collected,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.park_location END AS park_location,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.park_type END AS park_type,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.park_pay END AS park_pay,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.park_cost END AS park_cost,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.ev_charge_station END AS ev_charge_station,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.ev_charge_station_level_1 END AS ev_charge_station_level_1,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.ev_charge_station_level_2 END AS ev_charge_station_level_2,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.ev_charge_station_level_998 END AS ev_charge_station_level_998,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.ev_charge_station_decision END AS ev_charge_station_decision,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.tnc_type END AS tnc_type,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.taxi_type END AS taxi_type,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.taxi_pay END AS taxi_pay,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.transit_type END AS transit_type,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.num_travelers END AS num_travelers,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.num_hh_travelers END AS num_hh_travelers,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.num_non_hh_travelers END AS num_non_hh_travelers,
+    CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.driver END AS driver
   FROM trips_with_school AS t
   LEFT JOIN `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS u
-    ON CAST(t.linked_trip_id / 1000 AS INT64) = u.trip_id
-    AND t.joint_status = 1
+    ON t.hh_id = u.hh_id
+    AND t.person_id = u.person_id
+    AND t.day_id = u.day_id
+    AND t.depart_hour = u.depart_hour
+    AND t.depart_minute = u.depart_minute
+    AND t.depart_second = u.depart_seconds
 ),
+
 
 -- production/attraction zones
 trips_with_pa_zones AS (
@@ -274,7 +277,7 @@ trips_with_pa_zones AS (
 
 
 SELECT
-  linked_trip_id, trip_id, hh_id, person_id, day_id, day_weight,
+  linked_trip_id, hh_id, person_id, day_id, day_weight,
   person_num, day_num,
   participation_group, diary_platform,
   o_purpose, o_purpose_category, o_purpose_type, o_purpose_category3, o_purpose_type_rsg,
