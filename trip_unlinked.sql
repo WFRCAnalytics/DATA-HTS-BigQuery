@@ -37,7 +37,8 @@ destination_taz_v3 AS (
 origin_taz_v4 AS (
   SELECT
     t.trip_id,
-    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS oCO_TAZID_USTMv4
+    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS oCO_TAZID_USTMv4,
+    SAFE_CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[OFFSET(0)] AS INT64) AS oSUBAREAID
   FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
@@ -48,7 +49,8 @@ origin_taz_v4 AS (
 destination_taz_v4 AS (
   SELECT
     t.trip_id,
-    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS dCO_TAZID_USTMv4
+    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS dCO_TAZID_USTMv4,
+    SAFE_CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[OFFSET(0)] AS INT64) AS dSUBAREAID
   FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
@@ -63,6 +65,8 @@ trip_taz_pa AS (
     dt3.dCO_TAZID_USTMv3,
     ot4.oCO_TAZID_USTMv4,
     dt4.dCO_TAZID_USTMv4,
+    dt4.dSUBAREAID,
+    ot4.oSUBAREAID,
 
     CASE 
       WHEN tb.o_purpose_category = 1 THEN 'PA'
@@ -318,6 +322,20 @@ SELECT
     WHEN t.PA_AP = 'AP' THEN t.oCO_TAZID_USTMv4
     ELSE NULL
   END AS aCO_TAZID_USTMv4,
+
+  -- calculate production CO_TAZID
+  CASE 
+    WHEN t.PA_AP = 'PA' THEN t.oSUBAREAID
+    WHEN t.PA_AP = 'AP' THEN t.dSUBAREAID
+    ELSE NULL
+  END AS pSUBAREAID,
+  
+  -- calculate attraciton CO_TAZID
+  CASE 
+    WHEN t.PA_AP = 'PA' THEN t.dSUBAREAID
+    WHEN t.PA_AP = 'AP' THEN t.oSUBAREAID
+    ELSE NULL
+  END AS aSUBAREAID,
 
   -- calculate production BG
   CASE 

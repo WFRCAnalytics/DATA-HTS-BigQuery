@@ -3,7 +3,7 @@ WITH
 origin_taz_v3 AS (
   SELECT
     t.linked_trip_id,
-    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS oCO_TAZID_USTMv3
+    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv3
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
@@ -14,7 +14,7 @@ origin_taz_v3 AS (
 destination_taz_v3 AS (
   SELECT
     t.linked_trip_id,
-    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS dCO_TAZID_USTMv3
+    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv3,
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
@@ -25,7 +25,8 @@ destination_taz_v3 AS (
 origin_taz_v4 AS (
   SELECT
     t.linked_trip_id,
-    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS oCO_TAZID_USTMv4
+    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv4,
+    SAFE_CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[OFFSET(0)] AS INT64) AS oSUBAREAID
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
@@ -35,8 +36,10 @@ origin_taz_v4 AS (
 -- destination TAZ (USTM v4)
 destination_taz_v4 AS (
   SELECT
+
     t.linked_trip_id,
-    ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS dCO_TAZID_USTMv4
+    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv4,
+    SAFE_CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[OFFSET(0)] AS INT64) AS dSUBAREAID
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
@@ -51,6 +54,8 @@ trips_with_taz AS (
     dt3.dCO_TAZID_USTMv3,
     ot4.oCO_TAZID_USTMv4,
     dt4.dCO_TAZID_USTMv4,
+    ot4.oSUBAREAID,
+    dt4.dSUBAREAID,
     t.trip_weight_new AS trip_weight
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   LEFT JOIN origin_taz_v3      AS ot3 USING (linked_trip_id)
@@ -270,7 +275,20 @@ trips_with_pa_zones AS (
       WHEN PA_AP = 'PA' THEN dCO_TAZID_USTMv4
       WHEN PA_AP = 'AP' THEN oCO_TAZID_USTMv4
       ELSE NULL
-    END AS aCO_TAZID_USTMv4
+    END AS aCO_TAZID_USTMv4,
+
+    -- production / attraction for USTMv4
+    CASE
+      WHEN PA_AP = 'PA' THEN oSUBAREAID
+      WHEN PA_AP = 'AP' THEN dSUBAREAID
+      ELSE NULL
+    END AS pSUBAREAID,
+
+    CASE
+      WHEN PA_AP = 'PA' THEN dSUBAREAID
+      WHEN PA_AP = 'AP' THEN oSUBAREAID
+      ELSE NULL
+    END AS aSUBAREAID
 
   FROM trips_with_unlinked
 )
@@ -306,6 +324,7 @@ SELECT
   PA_AP,
   oCO_TAZID_USTMv3, dCO_TAZID_USTMv3, pCO_TAZID_USTMv3, aCO_TAZID_USTMv3,
   oCO_TAZID_USTMv4, dCO_TAZID_USTMv4, pCO_TAZID_USTMv4, aCO_TAZID_USTMv4,
+  pSUBAREAID, aSUBAREAID,
   trip_weight
 FROM trips_with_pa_zones;
 
