@@ -2,47 +2,47 @@ WITH
 -- origin TAZ (USTM v3)
 origin_taz_v3 AS (
   SELECT
-    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    t.unique_id,
     CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv3
-  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
+  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked_with_uuid` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
-  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
+  GROUP BY t.unique_id
 ),
 
 -- destination TAZ (USTM v3)
 destination_taz_v3 AS (
   SELECT
-    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    t.unique_id,
     CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv3
-  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
+  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked_with_uuid` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
-  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
+  GROUP BY t.unique_id
 ),
 
 -- origin TAZ (USTM v4)
 origin_taz_v4 AS (
   SELECT
-    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    t.unique_id,
     CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv4,
     CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oSUBAREAID
-  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
+  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked_with_uuid` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
-  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
+  GROUP BY t.unique_id
 ),
 
 -- destination TAZ (USTM v4)
 destination_taz_v4 AS (
   SELECT
-    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    t.unique_id,
     CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv4,
     CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dSUBAREAID
-  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
+  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked_with_uuid` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
-  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
+  GROUP BY t.unique_id
 ),
 
 -- select columns and join geographies
@@ -56,11 +56,11 @@ trips_with_taz AS (
     ot4.oSUBAREAID,
     dt4.dSUBAREAID,
     t.trip_weight_new AS trip_weight
-  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
-  LEFT JOIN origin_taz_v3      AS ot3 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
-  LEFT JOIN destination_taz_v3 AS dt3 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
-  LEFT JOIN origin_taz_v4      AS ot4 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
-  LEFT JOIN destination_taz_v4 AS dt4 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
+  FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked_with_uuid` AS t
+  LEFT JOIN origin_taz_v3      AS ot3 USING (unique_id)
+  LEFT JOIN destination_taz_v3 AS dt3 USING (unique_id)
+  LEFT JOIN origin_taz_v4      AS ot4 USING (unique_id)
+  LEFT JOIN destination_taz_v4 AS dt4 USING (unique_id)
 ),
 
 trips_with_purposes AS (
@@ -195,7 +195,7 @@ trips_with_school AS (
       ELSE Model_Purpose
     END AS PURP7_t,
 
-    -- rename depart_seconds
+    -- rename depart_seconds (keep original too via t.*)
     depart_seconds AS depart_second,
    
     --- school level
@@ -207,6 +207,23 @@ trips_with_school AS (
     END AS HBSch_lev
   FROM trips_with_times
 ),
+
+-- --------- NEW: de-duplicate core_trip to avoid 1->N fanout ----------
+core_trip_one AS (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (
+      PARTITION BY hh_id, person_id, day_id, depart_hour, depart_minute, depart_seconds
+      ORDER BY segment_type NULLS LAST, trip_id
+    ) AS rn
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip`
+),
+core_trip_dedup AS (
+  SELECT * EXCEPT(rn)
+  FROM core_trip_one
+  WHERE rn = 1
+),
+-- ---------------------------------------------------------------------
 
 trips_with_unlinked AS (
   SELECT
@@ -236,15 +253,14 @@ trips_with_unlinked AS (
     CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.num_non_hh_travelers END AS num_non_hh_travelers,
     CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.driver END AS driver
   FROM trips_with_school AS t
-  LEFT JOIN `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS u
+  LEFT JOIN core_trip_dedup AS u
     ON t.hh_id = u.hh_id
     AND t.person_id = u.person_id
     AND t.day_id = u.day_id
     AND t.depart_hour = u.depart_hour
     AND t.depart_minute = u.depart_minute
-    AND t.depart_second = u.depart_seconds
+    AND t.depart_seconds = u.depart_seconds
 ),
-
 
 -- production/attraction zones
 trips_with_pa_zones AS (
@@ -276,7 +292,7 @@ trips_with_pa_zones AS (
       ELSE NULL
     END AS aCO_TAZID_USTMv4,
 
-    -- production / attraction for USTMv4
+    -- production / attraction for USTMv4 subareas
     CASE
       WHEN PA_AP = 'PA' THEN oSUBAREAID
       WHEN PA_AP = 'AP' THEN dSUBAREAID
@@ -292,9 +308,8 @@ trips_with_pa_zones AS (
   FROM trips_with_unlinked
 )
 
-
 SELECT
-  linked_trip_id, hh_id, person_id, day_id, day_weight,
+  unique_id, linked_trip_id, hh_id, person_id, day_id, day_weight,
   person_num, day_num,
   participation_group, diary_platform,
   o_purpose, o_purpose_category, o_purpose_type, o_purpose_category3, o_purpose_type_rsg,
