@@ -2,48 +2,47 @@ WITH
 -- origin TAZ (USTM v3)
 origin_taz_v3 AS (
   SELECT
-    t.linked_trip_id,
-    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv3
+    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv3
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
-  GROUP BY t.linked_trip_id
+  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
 ),
 
 -- destination TAZ (USTM v3)
 destination_taz_v3 AS (
   SELECT
-    t.linked_trip_id,
-    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv3,
+    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv3
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
-  GROUP BY t.linked_trip_id
+  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
 ),
 
 -- origin TAZ (USTM v4)
 origin_taz_v4 AS (
   SELECT
-    t.linked_trip_id,
-    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv4,
-    SAFE_CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[OFFSET(0)] AS INT64) AS oSUBAREAID
+    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv4,
+    CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oSUBAREAID
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
-  GROUP BY t.linked_trip_id
+  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
 ),
 
 -- destination TAZ (USTM v4)
 destination_taz_v4 AS (
   SELECT
-
-    t.linked_trip_id,
-    SAFE_CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv4,
-    SAFE_CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[OFFSET(0)] AS INT64) AS dSUBAREAID
+    t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds,
+    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv4,
+    CAST(ARRAY_AGG(taz.SUBAREAID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dSUBAREAID
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v4_taz_2025_07_29_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
-  GROUP BY t.linked_trip_id
+  GROUP BY t.hh_id, t.day_id, t.person_id, t.depart_hour, t.depart_minute, t.depart_seconds
 ),
 
 -- select columns and join geographies
@@ -58,10 +57,10 @@ trips_with_taz AS (
     dt4.dSUBAREAID,
     t.trip_weight_new AS trip_weight
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked` AS t
-  LEFT JOIN origin_taz_v3      AS ot3 USING (linked_trip_id)
-  LEFT JOIN destination_taz_v3 AS dt3 USING (linked_trip_id)
-  LEFT JOIN origin_taz_v4      AS ot4 USING (linked_trip_id)
-  LEFT JOIN destination_taz_v4 AS dt4 USING (linked_trip_id)
+  LEFT JOIN origin_taz_v3      AS ot3 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
+  LEFT JOIN destination_taz_v3 AS dt3 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
+  LEFT JOIN origin_taz_v4      AS ot4 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
+  LEFT JOIN destination_taz_v4 AS dt4 USING (hh_id, day_id, person_id, depart_hour, depart_minute, depart_seconds)
 ),
 
 trips_with_purposes AS (
@@ -141,7 +140,7 @@ trips_with_mode AS (
       WHEN 16 THEN 'Long Distance'
       WHEN 17 THEN 'Other'
       ELSE NULL
-    END AS linked_trip_mode_t,
+    END AS linked_trip_mode_t
   FROM trips_with_purposes
 ),
 
@@ -204,7 +203,7 @@ trips_with_school AS (
       WHEN Model_Purpose = 'HBSch' AND school_type = 5 THEN 'primary'
       WHEN Model_Purpose = 'HBSch' AND school_type IN (6, 7) THEN 'secondary'
       WHEN Model_Purpose = 'HBSch' AND school_type NOT IN (5, 6, 7) THEN 'undefined'
-      ELSE 'NULL'
+      ELSE NULL
     END AS HBSch_lev
   FROM trips_with_times
 ),
@@ -327,17 +326,3 @@ SELECT
   pSUBAREAID, aSUBAREAID,
   trip_weight
 FROM trips_with_pa_zones;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
