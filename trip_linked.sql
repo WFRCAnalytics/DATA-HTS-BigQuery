@@ -303,7 +303,35 @@ trips_with_pa_zones AS (
       WHEN PA_AP = 'PA' THEN dSUBAREAID
       WHEN PA_AP = 'AP' THEN oSUBAREAID
       ELSE NULL
-    END AS aSUBAREAID
+    END AS aSUBAREAID,
+
+    CASE
+      WHEN linked_trip_mode IN (2, 5) THEN 'transit'                -- Drive-Transit, Walk-Transit
+      WHEN linked_trip_mode = 10 THEN 'auto_sov'                    -- SOV
+      WHEN linked_trip_mode = 11 THEN 'bike'
+      WHEN linked_trip_mode IN (12, 15) THEN 'walk'                 -- Scooter -> walk, Walk
+      WHEN linked_trip_mode = 1 THEN 'school_bus'
+      WHEN linked_trip_mode = 9 THEN 'auto_occ2'                    -- HOV2
+      WHEN linked_trip_mode = 8 THEN 'auto_occ3p'                   -- HOV3+
+
+      -- Taxi + TNC combined, split by travelers
+      -- Because these modes should be able to use HOT lanes, we assign occupancy based on number of travelers plus unreported driver
+      WHEN linked_trip_mode IN (13, 14) THEN
+        CASE
+          WHEN SAFE_CAST(num_travelers AS INT64) >= 2 THEN 'auto_occ3p'
+          ELSE 'auto_occ2'
+        END
+
+      -- Missing / Long Distance / Other -> use occupancy if known, else default to SOV
+      WHEN linked_trip_mode IN (-1, 16, 17) THEN
+        CASE
+          WHEN SAFE_CAST(num_travelers AS INT64) = 2 THEN 'auto_occ2'
+          WHEN SAFE_CAST(num_travelers AS INT64) >= 3 THEN 'auto_occ3p'
+          ELSE 'auto_sov'
+        END
+
+      ELSE NULL
+    END AS model_trip_mode_WFv10
 
   FROM trips_with_unlinked
 )
@@ -338,6 +366,6 @@ SELECT
   PA_AP,
   oCO_TAZID_USTMv3, dCO_TAZID_USTMv3, pCO_TAZID_USTMv3, aCO_TAZID_USTMv3,
   oCO_TAZID_USTMv4, dCO_TAZID_USTMv4, pCO_TAZID_USTMv4, aCO_TAZID_USTMv4,
-  pSUBAREAID, aSUBAREAID,
+  pSUBAREAID, aSUBAREAID, model_trip_mode_WFv10,
   trip_weight
 FROM trips_with_pa_zones;
