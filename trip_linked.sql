@@ -306,7 +306,8 @@ trips_with_pa_zones AS (
     END AS aSUBAREAID,
 
     CASE
-      WHEN linked_trip_mode IN (2, 5) THEN 'transit'                -- Drive-Transit, Walk-Transit
+      WHEN linked_trip_mode = 2 THEN 'drive-to-transit'             -- Drive-to-Transit
+      WHEN linked_trip_mode = 5 THEN 'walk-to-transit'              -- Walk-to-Transit
       WHEN linked_trip_mode = 10 THEN 'auto_sov'                    -- SOV
       WHEN linked_trip_mode = 11 THEN 'bike'
       WHEN linked_trip_mode IN (12, 15) THEN 'walk'                 -- Scooter -> walk, Walk
