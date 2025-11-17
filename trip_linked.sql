@@ -308,27 +308,27 @@ trips_with_pa_zones AS (
     CASE
       WHEN linked_trip_mode = 2 THEN 'drive-to-transit'             -- Drive-to-Transit
       WHEN linked_trip_mode = 5 THEN 'walk-to-transit'              -- Walk-to-Transit
-      WHEN linked_trip_mode = 10 THEN 'auto_sov'                    -- SOV
+      WHEN linked_trip_mode = 10 THEN 'auto-sov'                    -- SOV
       WHEN linked_trip_mode = 11 THEN 'bike'
       WHEN linked_trip_mode IN (12, 15) THEN 'walk'                 -- Scooter -> walk, Walk
       WHEN linked_trip_mode = 1 THEN 'school_bus'
-      WHEN linked_trip_mode = 9 THEN 'auto_occ2'                    -- HOV2
-      WHEN linked_trip_mode = 8 THEN 'auto_occ3p'                   -- HOV3+
+      WHEN linked_trip_mode = 9 THEN 'auto-occ2'                    -- HOV2
+      WHEN linked_trip_mode = 8 THEN 'auto-occ3p'                   -- HOV3+
 
       -- Taxi + TNC combined, split by travelers
       -- Because these modes should be able to use HOT lanes, we assign occupancy based on number of travelers plus unreported driver
       WHEN linked_trip_mode IN (13, 14) THEN
         CASE
-          WHEN SAFE_CAST(num_travelers AS INT64) >= 2 THEN 'auto_occ3p'
-          ELSE 'auto_occ2'
+          WHEN SAFE_CAST(num_travelers AS INT64) >= 2 THEN 'auto-occ3p'
+          ELSE 'auto-occ2'
         END
 
       -- Missing / Long Distance / Other -> use occupancy if known, else default to SOV
       WHEN linked_trip_mode IN (-1, 16, 17) THEN
         CASE
-          WHEN SAFE_CAST(num_travelers AS INT64) = 2 THEN 'auto_occ2'
-          WHEN SAFE_CAST(num_travelers AS INT64) >= 3 THEN 'auto_occ3p'
-          ELSE 'auto_sov'
+          WHEN SAFE_CAST(num_travelers AS INT64) = 2 THEN 'auto-occ2'
+          WHEN SAFE_CAST(num_travelers AS INT64) >= 3 THEN 'auto-occ3p'
+          ELSE 'auto-sov'
         END
 
       ELSE NULL
