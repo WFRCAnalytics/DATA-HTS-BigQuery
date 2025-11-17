@@ -77,7 +77,7 @@ household_lifegroup_counts AS (
 -- calculate remaining trip fields using preprocessed tables from above
 -------------------------------------------------------------------------------------
 SELECT 
-  a.* EXCEPT (Unnamed__0,home_taz,home_lat,home_lon,home_x,home_y,sample_home_lat,sample_home_lon,segment_type,seasonal_res,seasonal_res_in_region,residence_months_0,hh_weight,hh_weight_fri, hh_weight_sat,hh_weight_sun,hh_weight_v2,hh_weight_aggregated_v2,university),
+  a.* EXCEPT (Unnamed__0,home_taz,home_lat,home_lon,home_x,home_y,sample_home_lat,sample_home_lon,segment_type,seasonal_res,seasonal_res_in_region,residence_months_0,hh_weight,hh_weight_fri, hh_weight_sat,hh_weight_sun,hh_weight_v2,hh_weight_aggregated_v2),
 
   -- completed_follow_on
   CASE 
@@ -152,10 +152,6 @@ SELECT
 
     ELSE a.residence_months_0
   END AS residence_months_0_cleaned,
-
-
-  -- university cleaned (remove "University" or "College")
-  TRIM(REGEXP_REPLACE(a.university, r'\s+(University|College)$', '')) AS university_cleaned,
 
   -- Additional calculated columns
   LEAST(a.num_people, 6) AS hhsize_6cat,
