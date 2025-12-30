@@ -199,7 +199,9 @@ SELECT
 
   -- spatial join fields
   tazv3.CO_TAZID AS hCO_TAZID_USTMv3,
-  tazv4.CO_TAZID AS hCO_TAZID_USTMv4
+  CAST(tazv3.SUBAREAID AS INT64) AS hSUBAREAID_USTMv3,
+  tazv4.CO_TAZID AS hCO_TAZID_USTMv4,
+  CAST(tazv4.SUBAREAID AS INT64) AS hSUBAREAID_USTMv4
 
 FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_hh` AS a
 
