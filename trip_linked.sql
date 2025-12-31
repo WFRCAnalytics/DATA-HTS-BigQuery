@@ -1,9 +1,11 @@
 WITH
 -- origin TAZ (USTM v3)
+-- CO_FIPS should be same in all versions
 origin_taz_v3 AS (
   SELECT
     t.unique_id,
-    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv3
+    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oCO_TAZID_USTMv3,
+    CAST(ARRAY_AGG(taz.CO_FIPS LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS oCO_FIPS
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked_with_uuid` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.o_lon, t.o_lat), taz.geometry)
@@ -11,10 +13,12 @@ origin_taz_v3 AS (
 ),
 
 -- destination TAZ (USTM v3)
+-- CO_FIPS should be same in all versions
 destination_taz_v3 AS (
   SELECT
     t.unique_id,
-    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv3
+    CAST(ARRAY_AGG(taz.CO_TAZID LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dCO_TAZID_USTMv3,
+    CAST(ARRAY_AGG(taz.CO_FIPS LIMIT 1)[SAFE_OFFSET(0)] AS INT64) AS dCO_FIPS
   FROM `wfrc-modeling-data.ext_rsg_hts_2023.trip_linked_with_uuid` AS t
   JOIN `wfrc-modeling-data.prd_tdm_taz.ustm_v3_taz_2021_09_22_geo` AS taz
     ON ST_INTERSECTS(st_geogpoint(t.d_lon, t.d_lat), taz.geometry)
@@ -22,6 +26,7 @@ destination_taz_v3 AS (
 ),
 
 -- origin TAZ (USTM v4)
+-- SUBAREAID should be same in all versions
 origin_taz_v4 AS (
   SELECT
     t.unique_id,
@@ -34,6 +39,7 @@ origin_taz_v4 AS (
 ),
 
 -- destination TAZ (USTM v4)
+-- SUBAREAID should be same in all versions
 destination_taz_v4 AS (
   SELECT
     t.unique_id,
@@ -53,6 +59,8 @@ trips_with_taz AS (
     dt3.dCO_TAZID_USTMv3,
     ot4.oCO_TAZID_USTMv4,
     dt4.dCO_TAZID_USTMv4,
+    ot3.oCO_FIPS,
+    dt3.dCO_FIPS,
     ot4.oSUBAREAID,
     dt4.dSUBAREAID,
     t.trip_weight_new AS trip_weight
@@ -292,6 +300,19 @@ trips_with_pa_zones AS (
       ELSE NULL
     END AS aCO_TAZID_USTMv4,
 
+    -- production / attraction for USTMv4 counties
+    CASE
+      WHEN PA_AP = 'PA' THEN oCO_FIPS
+      WHEN PA_AP = 'AP' THEN dCO_FIPS
+      ELSE NULL
+    END AS pCO_FIPS,
+
+    CASE
+      WHEN PA_AP = 'PA' THEN dCO_FIPS
+      WHEN PA_AP = 'AP' THEN oCO_FIPS
+      ELSE NULL
+    END AS aCO_FIPS,
+
     -- production / attraction for USTMv4 subareas
     CASE
       WHEN PA_AP = 'PA' THEN oSUBAREAID
@@ -367,6 +388,6 @@ SELECT
   PA_AP,
   oCO_TAZID_USTMv3, dCO_TAZID_USTMv3, pCO_TAZID_USTMv3, aCO_TAZID_USTMv3,
   oCO_TAZID_USTMv4, dCO_TAZID_USTMv4, pCO_TAZID_USTMv4, aCO_TAZID_USTMv4,
-  pSUBAREAID, aSUBAREAID, model_trip_mode_WFv10,
+  pCO_FIPS, aCO_FIPS, pSUBAREAID, aSUBAREAID, model_trip_mode_WFv10,
   trip_weight
 FROM trips_with_pa_zones;
