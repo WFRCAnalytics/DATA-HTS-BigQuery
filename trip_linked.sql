@@ -353,7 +353,7 @@ trips_with_pa_zones AS (
         END
 
       ELSE NULL
-    END AS model_trip_mode_WFv10
+    END AS model_trip_mode_WFv10,
 
     CASE
       WHEN PURP7_t IN ('NHBNW', 'NHBW') THEN 'NHB'
