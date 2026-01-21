@@ -205,7 +205,7 @@ trips_with_school AS (
 
     -- rename depart_seconds (keep original too via t.*)
     depart_seconds AS depart_second,
-   
+
     --- school level
     CASE
       WHEN Model_Purpose = 'HBSch' AND school_type = 5 THEN 'primary'
@@ -355,6 +355,15 @@ trips_with_pa_zones AS (
       ELSE NULL
     END AS model_trip_mode_WFv10
 
+    CASE
+      WHEN PURP7_t IN ('NHBNW', 'NHBW') THEN 'NHB'
+      WHEN PURP7_t = 'HBW'               THEN 'HBW'
+      WHEN PURP7_t = 'HBSch'             THEN 'HBSch'
+      WHEN PURP7_t = 'HBC'               THEN 'HBC'
+      WHEN PURP7_t IN ('HBOth', 'HBShp') THEN 'HBO'
+      ELSE NULL
+    END AS PURP5_t
+
   FROM trips_with_unlinked
 )
 
@@ -377,13 +386,13 @@ SELECT
   ev_charge_station, ev_charge_station_level_1, ev_charge_station_level_2, ev_charge_station_level_998, ev_charge_station_decision,
   tnc_type, taxi_type, taxi_pay,
   transit_type,
-  num_travelers, num_hh_travelers, num_non_hh_travelers, 
+  num_travelers, num_hh_travelers, num_non_hh_travelers,
   driver,
   linked_trip_mode, linked_trip_mode_t,
-  linked_trip_weight, linked_trip_num, 
-  tour_num, tour_id, 
-  trip_purp_RSG, TMR_Purpose, PURP7_t, 
-  person_type, person_cat, 
+  linked_trip_weight, linked_trip_num,
+  tour_num, tour_id,
+  trip_purp_RSG, TMR_Purpose, PURP7_t,
+  person_type, person_cat,
   school_type, HBSch_lev,
   PA_AP,
   oCO_TAZID_USTMv3, dCO_TAZID_USTMv3, pCO_TAZID_USTMv3, aCO_TAZID_USTMv3,
