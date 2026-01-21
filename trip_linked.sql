@@ -391,7 +391,7 @@ SELECT
   linked_trip_mode, linked_trip_mode_t,
   linked_trip_weight, linked_trip_num,
   tour_num, tour_id,
-  trip_purp_RSG, TMR_Purpose, PURP7_t,
+  trip_purp_RSG, TMR_Purpose, PURP5_t, PURP7_t,
   person_type, person_cat,
   school_type, HBSch_lev,
   PA_AP,
