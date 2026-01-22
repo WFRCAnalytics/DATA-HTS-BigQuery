@@ -362,7 +362,13 @@ trips_with_pa_zones AS (
       WHEN PURP7_t = 'HBC'               THEN 'HBC'
       WHEN PURP7_t IN ('HBOth', 'HBShp') THEN 'HBO'
       ELSE NULL
-    END AS PURP5_t
+    END AS PURP5_t,
+
+    CASE
+      WHEN depart_per IN ('AM', 'PM') THEN 'PK'
+      WHEN depart_per IN ('MD', 'EV') THEN 'OK'
+      ELSE NULL
+    END AS PK_OK
 
   FROM trips_with_unlinked
 )
@@ -394,7 +400,7 @@ SELECT
   trip_purp_RSG, TMR_Purpose, PURP5_t, PURP7_t,
   person_type, person_cat,
   school_type, HBSch_lev,
-  PA_AP,
+  PA_AP, PK_OK,
   oCO_TAZID_USTMv3, dCO_TAZID_USTMv3, pCO_TAZID_USTMv3, aCO_TAZID_USTMv3,
   oCO_TAZID_USTMv4, dCO_TAZID_USTMv4, pCO_TAZID_USTMv4, aCO_TAZID_USTMv4,
   pCO_FIPS, aCO_FIPS, pSUBAREAID, aSUBAREAID, model_trip_mode_WFv10,
