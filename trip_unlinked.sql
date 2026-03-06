@@ -2,14 +2,25 @@
 -------------------------------------------------------------------------------------
 -- preprocessing/setting up certain columns before final selection
 -------------------------------------------------------------------------------------
--- get school_id from person table
-WITH trip_base AS (
+-- get vehicle lookup table
+WITH vehicle_lookup AS (
+  SELECT hh_id, person_id, trip_id, vehicle_id 
+  FROM `wfrc-modeling-data.prd_tdm_hts_2023.vehicle-trip-crosswalk`
+),
+
+-- get school_id from person table and vehicle id from vehicle lookup table
+trip_base AS (
     SELECT 
         t.*,
-        p.school_type
+        p.school_type,
+        v.vehicle_id        -- 1. Add this line
     FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS t
     LEFT JOIN `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_person` AS p
-    ON t.person_id = p.person_id
+      ON t.person_id = p.person_id
+    LEFT JOIN vehicle_lookup AS v   -- 2. Add this join
+      ON t.hh_id = v.hh_id 
+      AND t.person_id = v.person_id 
+      AND t.trip_id = v.trip_id
 ),
 
 -- calculate 'oCO_TAZID_USTMv3' origin co_tazid

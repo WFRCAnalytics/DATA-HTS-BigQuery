@@ -217,14 +217,25 @@ trips_with_school AS (
 ),
 
 -- --------- NEW: de-duplicate core_trip to avoid 1->N fanout ----------
+-- vehicle id lookup
+vehicle_lookup AS (
+  SELECT hh_id, person_id, trip_id, vehicle_id 
+  FROM `wfrc-modeling-data.prd_tdm_hts_2023.vehicle-trip-crosswalk`
+),
+
 core_trip_one AS (
   SELECT
-    *,
+    ct.*,
+    v.vehicle_id,
     ROW_NUMBER() OVER (
-      PARTITION BY hh_id, person_id, day_id, depart_hour, depart_minute, depart_seconds
-      ORDER BY segment_type NULLS LAST, trip_id
+      PARTITION BY ct.hh_id, ct.person_id, ct.day_id, ct.depart_hour, ct.depart_minute, ct.depart_seconds
+      ORDER BY ct.segment_type NULLS LAST, ct.trip_id
     ) AS rn
-  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip`
+  FROM `wfrc-modeling-data.src_rsg_household_travel_survey_2023.core_trip` AS ct
+  LEFT JOIN vehicle_lookup AS v 
+    ON  ct.hh_id = v.hh_id 
+    AND ct.person_id = v.person_id 
+    AND ct.trip_id = v.trip_id
 ),
 core_trip_dedup AS (
   SELECT * EXCEPT(rn)
@@ -236,6 +247,7 @@ core_trip_dedup AS (
 trips_with_unlinked AS (
   SELECT
     t.*,
+    u.vehicle_id,
     CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.speed_mph END AS speed_mph,
     CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.speed_mph_collected END AS speed_mph_collected,
     CASE WHEN (t.linked_trip_mode_t = 'Drive-Alone' AND u.num_travelers != 1) OR (t.linked_trip_mode_t = 'Shared-Ride 2' AND u.num_travelers != 2) OR (t.linked_trip_mode_t = 'Shared-Ride 3+' AND u.num_travelers <= 2) THEN NULL ELSE u.speed_flag END AS speed_flag,
@@ -374,7 +386,7 @@ trips_with_pa_zones AS (
 )
 
 SELECT
-  unique_id, linked_trip_id, hh_id, person_id, day_id, day_weight,
+  unique_id, linked_trip_id, hh_id, person_id, day_id, vehicle_id, day_weight,
   person_num, day_num,
   participation_group, diary_platform,
   o_purpose, o_purpose_category, o_purpose_type, o_purpose_category3, o_purpose_type_rsg,
